@@ -1,52 +1,36 @@
-name: Connection Test
+name: Update RSS
 
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  test:
+  update:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Test connections
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
         run: |
-          echo "========================================"
-          echo "1. wwwあり 通常"
-          echo "========================================"
-          curl -I -L --connect-timeout 15 --max-time 30 \
-            https://www.fukuyama-kanko.com/information/ || true
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4
 
-          echo ""
-          echo "========================================"
-          echo "2. wwwなし 通常"
-          echo "========================================"
-          curl -I -L --connect-timeout 15 --max-time 30 \
-            https://fukuyama-kanko.com/information/ || true
+      - name: Update RSS
+        run: python fukuyama_kanko_info_rss.py
 
-          echo ""
-          echo "========================================"
-          echo "3. wwwあり IPv4固定"
-          echo "========================================"
-          curl -4 -I -L --connect-timeout 15 --max-time 30 \
-            https://www.fukuyama-kanko.com/information/ || true
-
-          echo ""
-          echo "========================================"
-          echo "4. wwwなし IPv4固定"
-          echo "========================================"
-          curl -4 -I -L --connect-timeout 15 --max-time 30 \
-            https://fukuyama-kanko.com/information/ || true
-
-          echo ""
-          echo "========================================"
-          echo "5. DNS確認"
-          echo "========================================"
-          getent ahosts www.fukuyama-kanko.com || true
-
-          echo ""
-          getent ahosts fukuyama-kanko.com || true
-
-          echo ""
-          echo "========================================"
-          echo "診断終了"
-          echo "========================================"
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add fukuyama_kanko_info.xml
+          git diff --cached --quiet || git commit -m "Update RSS"
+          git push
